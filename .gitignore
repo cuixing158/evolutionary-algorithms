@@ -1,0 +1,51 @@
+
+#忽略所有文件和目录(当前目录不能忽略)
+* 
+
+# 根据自己项目工程修改,增加指定目录和下面所有目录
+!/assets/
+!/assets/**/
+!/assets/*.*g*
+
+!/algorithms/
+!/algorithms/** 
+
+!/utils/
+!/utils/**
+
+# 增加指定扩展名文件#忽略特殊文件，一般是当前目录下的文件(当前目录不能忽略)
+!.gitignore
+!.gitattributes
+!*.json
+!*.md
+!*.sh
+
+# license
+!LICENSE
+
+# python
+!*.py
+!*.ipynb
+
+# matlab
+!*.m
+!*.mlx
+
+# c/c++
+!*.cpp
+!*.hpp
+!*.h
+!*.c
+
+# cmake
+!CMakeLists.txt
+!Makefile
+
+# 根据自己项目工程修改
+!*.pto
+!*.tif
+!/images/360panodemo.mp4
+
+#忽略特殊文件，一般是当前目录下的文件(当前目录不能忽略)
+/utils/*.yml*
+/yourSpecify.h
