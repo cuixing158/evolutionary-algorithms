@@ -3,9 +3,14 @@
 
 # 一些元启发式进化算法比较
 
-主要是对近年来goldenjackal[^1](2022)，starfish[^2](2025)一些群体智能优化算法做一些性能测试比较，体验其差异。对原始算法做了进一步的高度优化，比如并行处理，并支持实时性能绘图，规范代码书写，以符合MATLAB官方内置优化形式，目的在于提供易于直接使用的新型算法，可快速集成到自己的工程项目中！
+[![View evolutionary-algorithms on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://au.mathworks.com/matlabcentral/fileexchange/180962-evolutionary-algorithms)
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=cuixing158/evolutionary-algorithms)
+
+主要是对近年来goldenjackal[^1],(2022)，starfish[^2],(2025)一些群体智能优化算法做一些性能测试比较，体验其差异。对原始算法做了进一步的高度优化，比如并行处理，并支持实时性能绘图，规范代码书写，以符合MATLAB官方内置优化形式，目的在于提供易于直接使用的新型算法，可快速集成到自己的工程项目中！
 
 starfish收敛速度相对最快，goldenjackal优化结果相对较好，但与starfish优化结果差距不大，miragesearch[^3]和particleswarm收敛和最优解相对较差。
+
+Happy optimizing! 🚀✨
 
 <!-- Begin Toc -->
 
