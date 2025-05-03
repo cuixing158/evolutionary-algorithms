@@ -2,6 +2,7 @@
 % 主要是对近年来goldenjackal(2022)，starfish(2025)一些群体智能优化算法做一些性能测试比较，体验其差异。对原始算法做了进一步的高度优化，比如并行处理，并支持实时性能绘图，规范代码书写，以符合MATLAB官方内置优化形式，目的在于提供易于直接使用的新型算法，可快速集成到自己的工程项目中！
 % 
 % starfish收敛速度相对最快，goldenjackal优化结果相对较好，但与starfish优化结果差距不大，miragesearch和particleswarm收敛和最优解相对较差。
+
 % Requirements
 %% 
 % * MATLAB R2025a or later
@@ -41,20 +42,26 @@ diary off
 [iterations, bestFvals] = extractPSOLogData("pso_iter.txt");
 delete("pso_iter.txt");
 Curve3 = bestFvals(:)';
-% Performance Curve
 
+t4 = tic;
+[xposbest4,fvalbest4,Curve4] = MSO(f,nvars,lb,ub,Npop,Max_it);
+toc(t4)
+
+%% Performance Curve
 figure;
 grid on;
 hold on;
 
-plot([Curve1;Curve2;Curve3]',LineWidth=2)
+plot([Curve1;Curve2;Curve3;Curve4]',LineWidth=2)
 xlabel("Iteration");
 ylabel("Function Value");
 title("Convergence Performance Curves of Various Algorithms")
 legend(["starfish:"+string(vpa(fvalbest1,10)),...
     "goldenjackal:"+string(vpa(fvalbest2,10)),...
-    "particleswarm:"+string(vpa(fvalbest3,10))])
-% Some Benchmark Performance Functions
+    "particleswarm:"+string(vpa(fvalbest3,10)),...
+     "miragesearch:"+string(vpa(fvalbest4,10))])
+
+%% Some Benchmark Performance Functions
 
 % Optimization Test Functions for Performance Evaluation
 % These functions are designed to test optimization algorithms on complex,

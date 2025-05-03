@@ -67,7 +67,7 @@ toc(t1)
 ```
 
 ```matlabTextOutput
-Elapsed time is 5.845442 seconds.
+Elapsed time is 2.611676 seconds.
 ```
 
 ```matlab
@@ -83,7 +83,7 @@ toc(t2)
 ```
 
 ```matlabTextOutput
-Elapsed time is 3.074263 seconds.
+Elapsed time is 2.287813 seconds.
 ```
 
 由于内置的[particleswarm](https://au.mathworks.com/help/gads/particleswarm.html)函数不易拿到内部每次迭代的函数值，故通过记录log方式打印每次迭代结果，然后解析Iteration\-f(x)对应的值，最后综合相关算法做性能对比绘图。
@@ -221,7 +221,7 @@ toc(t3)
 ```
 
 ```matlabTextOutput
-Elapsed time is 11.250353 seconds.
+Elapsed time is 2.325318 seconds.
 ```
 
 ```matlab
@@ -230,6 +230,14 @@ diary off
 [iterations, bestFvals] = extractPSOLogData("pso_iter.txt");
 delete("pso_iter.txt");
 Curve3 = bestFvals(:)';
+
+t4 = tic;
+[xposbest4,fvalbest4,Curve4] = MSO(f,nvars,lb,ub,Npop,Max_it);
+toc(t4)
+```
+
+```matlabTextOutput
+Elapsed time is 0.140662 seconds.
 ```
 
 <a id="TMP_62dd"></a>
@@ -241,13 +249,14 @@ figure;
 grid on;
 hold on;
 
-plot([Curve1;Curve2;Curve3]',LineWidth=2)
+plot([Curve1;Curve2;Curve3;Curve4]',LineWidth=2)
 xlabel("Iteration");
 ylabel("Function Value");
 title("Convergence Performance Curves of Various Algorithms")
 legend(["starfish:"+string(vpa(fvalbest1,10)),...
     "goldenjackal:"+string(vpa(fvalbest2,10)),...
-    "particleswarm:"+string(vpa(fvalbest3,10))])
+    "particleswarm:"+string(vpa(fvalbest3,10)),...
+    "miragesearch:"+string(vpa(fvalbest4,10))])
 ```
 
 ![figure_3.png](./assets/perfCurve.png)
