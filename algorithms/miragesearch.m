@@ -108,121 +108,284 @@ PlotFcns = options.PlotFcns;
 UseParallel = options.UseParallel;
 
 %%
-fval = inf;
-pos    = initialization(SearchAgentsNumber, nvars, ub, lb);  %Initializing populations
+pos = initialization(SearchAgentsNumber, nvars, ub, lb);  % Initializing populations
+pops = zeros(SearchAgentsNumber, 1);
 nfes = 0;
+cg_curve = zeros(1, MaxIterations);
 
-for i = 1:SearchAgentsNumber
-    pops(i) = fobj(pos(i, :));
-    nfes = nfes + 1;
-    if fval > pops(i)
-        fval = pops(i);
-        gbest  = pos(i, :);
+% Initial fitness evaluation
+if UseParallel
+    parfor i = 1:SearchAgentsNumber
+        pops(i) = fobj(pos(i, :));
+    end
+else
+    for i = 1:SearchAgentsNumber
+        pops(i) = fobj(pos(i, :));
     end
 end
-pops = pops';
+
+nfes = nfes + SearchAgentsNumber;
+[fval, idx] = min(pops);
+gbest = pos(idx, :);
+
+% Setup plotting if enabled
+if PlotFcns
+    fig = figure('Name', 'Mirage Search Optimization', 'NumberTitle', 'off');
+    ax = axes(fig);
+    lineObj = animatedline(ax, 'LineWidth', 2, 'Color', 'b');
+    xlabel(ax, 'Iteration');
+    ylabel(ax, 'Best Objective Value');
+    title(ax, 'Convergence Curve');
+    grid(ax, 'on');
+
+    % Add stop button
+    stopButton = uicontrol(fig, 'Style', 'pushbutton', 'String', 'Stop', ...
+        'Position', [20 20 50 20], 'Callback', @(src, event) stopCallback(src, event));
+    stopButton.UserData = false; % Initialize stop flag
+end
+
 iter = 0;
-while iter<MaxIterations
-    iter = iter+1;
+while iter < MaxIterations
+    iter = iter + 1;
     ac = randperm(SearchAgentsNumber-1) + 1;
-    cv = ceil((SearchAgentsNumber*(2/3)) * ((MaxIterations - nfes + 1) / MaxIterations));%Selection of individuals for Superior mirage search
+    cv = ceil((SearchAgentsNumber*(2/3)) * ((MaxIterations - nfes + 1) / MaxIterations)); % Selection of individuals for Superior mirage search
+
     %% Superior mirage search
-    for j = ac(1 : cv)
-        for k = 1:nvars
-            h    = (gbest(k) - pos(j, k)) * rand();
-            cmax = 1;
-            if h > 5 * atanh( -(nfes / MaxIterations) + 1) + cmax
-                h = 5 * atanh( -(nfes / MaxIterations) + 1) + cmax;
+    % newPos = pos;
+    % newPops = pops;
+    if UseParallel
+        % Temporary arrays for parallel updates
+        tempCos = zeros(cv, 1);
+        tempCosx = zeros(cv, nvars);
+        parfor j = 1:cv
+            idx = ac(j);
+            cosx = zeros(1, nvars);
+            for k = 1:nvars
+                h = (gbest(k) - pos(idx, k)) * rand();
+                cmax = 1;
+                if h > 5 * atanh(-(nfes / MaxIterations) + 1) + cmax
+                    h = 5 * atanh(-(nfes / MaxIterations) + 1) + cmax;
+                end
+                if h < cmax
+                    h = cmax;
+                end
+                zf = randi(2) * 2 - 3;
+                a = rand() * 20;
+                b = rand() * (45 - a / 2);
+                z = randi(2);
+                if z == 1  % Case 1
+                    C = b + 90;
+                    D = 180 - C - a;
+                    B = 180 - 2 * D;
+                    A = 180 - B + a - 90;
+                    dx = (sind(B) * h * sind(C)) / (sind(D) * sind(A));
+                    dx = dx * zf;
+                elseif z == 2 && a < b  % Case 2
+                    C = 90 - b;
+                    D = 90 + a - b;
+                    B = 180 - 2 * D;
+                    A = 180 - B - a - 90;
+                    dx = (sind(B) * h * sind(C)) / (sind(D) * sind(A));
+                    dx = dx * zf;
+                elseif z == 2 && a > b  % Case 3
+                    C = 90 - b;
+                    D = 180 - C - a;
+                    B = 180 - 2 * D;
+                    A = 180 - B - 90 + a;
+                    dx = (sind(B) * h * sind(C)) / (sind(D) * sind(A));
+                    dx = dx * zf;
+                else
+                    dx = 0;
+                end
+                cosx(k) = pos(idx, k) + dx;
             end
-            if h < cmax
-                h = cmax;
-            end
-            zf = randi(2) * 2 - 3;
-            a  = rand() * 20;
-            b  = rand() * (45 - a / 2);
-            z  = randi(2);
-            if z == 1  %Case 1
-                C  = b + 90;
-                D  = 180 - C - a;
-                B  = 180 - 2 * D;
-                A  = 180 - B + a - 90;
-                dx = ( sind(B) * h * sind(C) ) / ( sind(D) * sind(A) );
-                dx = dx * zf;
-            elseif z == 2 && a < b  %Case 2
-                C  = 90 - b;
-                D  = 90 + a - b;
-                B  = 180 - 2 * D;
-                A  = 180 - B - a - 90;
-                dx = ( sind(B) * h * sind(C) ) / ( sind(D) * sind(A) );
-                dx = dx * zf;
-            elseif z == 2 && a > b  %Case 3
-                C  = 90 - b;
-                D  = 180 - C - a;
-                B  = 180 - 2 * D;
-                A  = 180 - B - 90 + a;
-                dx = ( sind(B) * h * sind(C) ) / ( sind(D) * sind(A) );
-                dx = dx * zf;
-            else
-                dx = 0;
-            end
-            cosx(:,k) = pos(j, k) + dx;
+            % Bound the variable
+            Flag4ub = cosx > ub;
+            Flag4lb = cosx < lb;
+            cosx = (cosx .* (~(Flag4ub + Flag4lb))) + ub .* Flag4ub + lb .* Flag4lb;
+            tempCos(j) = fobj(cosx);
+            tempCosx(j, :) = cosx;
         end
-        %Bound the variable
-        Flag4ub   = cosx > ub;
-        Flag4lb   = cosx < lb;
-        cosx = (cosx .* ( ~(Flag4ub + Flag4lb))) + ub .* Flag4ub + lb .* Flag4lb;
-        nfes = nfes + 1;
-        cos = fobj( cosx);
-        if fval > cos
-            fval = cos;
-            gbest  = cosx;
+        nfes = nfes + cv;
+        % Update population
+        for j = 1:cv
+            cos = tempCos(j);
+            cosx = tempCosx(j, :);
+            if fval > cos
+                fval = cos;
+                gbest = cosx;
+            end
+            pos = [pos; cosx];
+            pops = [pops; cos];
         end
-        pos = [pos;cosx];
-        pops = [pops;cos];
+    else
+        for j = 1:cv
+            idx = ac(j);
+            cosx = zeros(1, nvars);
+            for k = 1:nvars
+                h = (gbest(k) - pos(idx, k)) * rand();
+                cmax = 1;
+                if h > 5 * atanh(-(nfes / MaxIterations) + 1) + cmax
+                    h = 5 * atanh(-(nfes / MaxIterations) + 1) + cmax;
+                end
+                if h < cmax
+                    h = cmax;
+                end
+                zf = randi(2) * 2 - 3;
+                a = rand() * 20;
+                b = rand() * (45 - a / 2);
+                z = randi(2);
+                if z == 1  % Case 1
+                    C = b + 90;
+                    D = 180 - C - a;
+                    B = 180 - 2 * D;
+                    A = 180 - B + a - 90;
+                    dx = (sind(B) * h * sind(C)) / (sind(D) * sind(A));
+                    dx = dx * zf;
+                elseif z == 2 && a < b  % Case 2
+                    C = 90 - b;
+                    D = 90 + a - b;
+                    B = 180 - 2 * D;
+                    A = 180 - B - a - 90;
+                    dx = (sind(B) * h * sind(C)) / (sind(D) * sind(A));
+                    dx = dx * zf;
+                elseif z == 2 && a > b  % Case 3
+                    C = 90 - b;
+                    D = 180 - C - a;
+                    B = 180 - 2 * D;
+                    A = 180 - B - 90 + a;
+                    dx = (sind(B) * h * sind(C)) / (sind(D) * sind(A));
+                    dx = dx * zf;
+                else
+                    dx = 0;
+                end
+                cosx(k) = pos(idx, k) + dx;
+            end
+            % Bound the variable
+            Flag4ub = cosx > ub;
+            Flag4lb = cosx < lb;
+            cosx = (cosx .* (~(Flag4ub + Flag4lb))) + ub .* Flag4ub + lb .* Flag4lb;
+            nfes = nfes + 1;
+            cos = fobj(cosx);
+            if fval > cos
+                fval = cos;
+                gbest = cosx;
+            end
+            pos = [pos; cosx];
+            pops = [pops; cos];
+        end
     end
+
     %% Selection of optimal individuals to renew the population
     tt = sortrows([pops, pos], 1);
-    tt = tt(1:SearchAgentsNumber,:);
-    pos= tt(:, 2 : end);
-    pops = tt(:,1);
+    tt = tt(1:SearchAgentsNumber, :);
+    pos = tt(:, 2:end);
+    pops = tt(:, 1);
+
     %% Inferior mirage search
-    for j = 1:SearchAgentsNumber
-        if gbest ~= pos(j, :)
-            hh = (gbest - pos(j, :)) ;
-        else
-            hh = ones(1, nvars) * 0.05 *( randi(2) * 2 - 3);
+    if UseParallel
+        % Temporary arrays for parallel updates
+        tempCos = zeros(SearchAgentsNumber, 1);
+        tempCosx = zeros(SearchAgentsNumber, nvars);
+        parfor j = 1:SearchAgentsNumber
+            if gbest ~= pos(j, :)
+                hh = (gbest - pos(j, :));
+            else
+                hh = ones(1, nvars) * 0.05 * (randi(2) * 2 - 3);
+            end
+            zf = sign(hh);
+            hh = abs(hh .* rand(1, nvars));
+            gama = rand(1, nvars) .* 90 .* ((MaxIterations - nfes*0.99) / MaxIterations);
+            amax = atand(1 ./ (2 * tand(gama)));
+            amin = atand((sind(gama) .* cosd(gama)) ./ (1 + (sind(gama)).^2));
+            fai = (amax - amin) .* rand() + amin;
+            omg = asind(rand() .* sind(fai + gama));
+            x = (hh ./ tand(gama)) - ((((hh ./ sind(gama)) - (hh .* sind(fai)) ./ (cosd(fai + gama))) .* cosd(omg)) ./ cosd(omg - gama));
+            cosx = pos(j, :) + x .* zf;
+            % Bound the variable
+            Flag4ub = cosx > ub;
+            Flag4lb = cosx < lb;
+            cosx = (cosx .* (~(Flag4ub + Flag4lb))) + ub .* Flag4ub + lb .* Flag4lb;
+            tempCos(j) = fobj(cosx);
+            tempCosx(j, :) = cosx;
         end
-        zf   = sign(hh);
-        hh   = abs(hh .* rand(1, nvars));
-        gama = rand(1, nvars) .* 90.* ((MaxIterations - nfes*0.99) / MaxIterations);
-        amax = atand(1 ./ (2 * tand(gama)));
-        amin = atand((sind(gama) .* cosd(gama)) ./ (1 + (sind(gama)) .^ 2));
-        fai  = (amax - amin) .* rand() + amin ;
-        omg  = asind(rand() .* sind(fai + gama)) ;
-        x    = (hh ./ tand(gama)) - ((((hh ./ sind(gama)) - (hh .* sind(fai)) ./ (cosd( fai + gama))) .* cosd(omg)) ./ cosd(omg - gama));
-        cosx = pos(j, :) + x .* zf;
-        %Bound the variable
-        Flag4ub   = cosx > ub;
-        Flag4lb   = cosx < lb;
-        cosx = (cosx .* ( ~(Flag4ub + Flag4lb))) + ub .* Flag4ub + lb .* Flag4lb;
-        cos = fobj(cosx);
-        nfes = nfes + 1;
-        if fval  > cos
-            fval = cos;
-            gbest  = cosx;
+        nfes = nfes + SearchAgentsNumber;
+        % Update population
+        for j = 1:SearchAgentsNumber
+            cos = tempCos(j);
+            cosx = tempCosx(j, :);
+            if fval > cos
+                fval = cos;
+                gbest = cosx;
+            end
+            pos = [pos; cosx];
+            pops = [pops; cos];
         end
-        pos = [pos;cosx];
-        pops = [pops;cos];
+    else
+        for j = 1:SearchAgentsNumber
+            if gbest ~= pos(j, :)
+                hh = (gbest - pos(j, :));
+            else
+                hh = ones(1, nvars) * 0.05 * (randi(2) * 2 - 3);
+            end
+            zf = sign(hh);
+            hh = abs(hh .* rand(1, nvars));
+            gama = rand(1, nvars) .* 90 .* ((MaxIterations - nfes*0.99) / MaxIterations);
+            amax = atand(1 ./ (2 * tand(gama)));
+            amin = atand((sind(gama) .* cosd(gama)) ./ (1 + (sind(gama)).^2));
+            fai = (amax - amin) .* rand() + amin;
+            omg = asind(rand() .* sind(fai + gama));
+            x = (hh ./ tand(gama)) - ((((hh ./ sind(gama)) - (hh .* sind(fai)) ./ (cosd(fai + gama))) .* cosd(omg)) ./ cosd(omg - gama));
+            cosx = pos(j, :) + x .* zf;
+            % Bound the variable
+            Flag4ub = cosx > ub;
+            Flag4lb = cosx < lb;
+            cosx = (cosx .* (~(Flag4ub + Flag4lb))) + ub .* Flag4ub + lb .* Flag4lb;
+            cos = fobj(cosx);
+            nfes = nfes + 1;
+            if fval > cos
+                fval = cos;
+                gbest = cosx;
+            end
+            pos = [pos; cosx];
+            pops = [pops; cos];
+        end
     end
+
     %% Selection of optimal individuals to renew the population
-    tt  = sortrows([pops, pos], 1);
-    tt = tt(1:SearchAgentsNumber,:);
-    pos = tt(:, 2 : end);
+    tt = sortrows([pops, pos], 1);
+    tt = tt(1:SearchAgentsNumber, :);
+    pos = tt(:, 2:end);
     pops = tt(:, 1);
     cg_curve(iter) = fval;
-end
+
+    % Plot convergence curve if enabled
+    if PlotFcns
+        addpoints(lineObj, iter, fval);
+        ax.Title.String = "Best Function Value: " + string(fval);
+        drawnow;
+        % Check stop button
+        if stopButton.UserData
+            break;
+        end
+    end
 end
 
+% Trim convergence curve if stopped early
+if iter < MaxIterations
+    cg_curve = cg_curve(1:iter);
+end
+
+if iter == MaxIterations && PlotFcns
+    stopButton.Visible = "off";
+end
+
+% Callback function for stop button
+    function stopCallback(src, ~)
+        src.UserData = true;
+        set(src, 'Visible', 'off');
+    end
+end
 
 function Positions = initialization(SearchAgents_no, nvars, ub, lb)
 Boundary_no = size(ub, 2);
