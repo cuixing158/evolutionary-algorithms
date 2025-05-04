@@ -38,7 +38,7 @@ delete("pso_iter.txt");
 Curve3 = bestFvals(:)';
 
 t4 = tic;
-[xposbest4,fvalbest4,Curve4] = MSO(f,nvars,lb,ub,Npop,Max_it);
+[xposbest4,fvalbest4,Curve4] = miragesearch(f,nvars,lb,ub,SearchAgentsNumber=Npop,MaxIterations=Max_it,PlotFcns=true,UseParallel=false);
 toc(t4) %[output:20084947]
 %%
 %[text] ### Performance Curve
