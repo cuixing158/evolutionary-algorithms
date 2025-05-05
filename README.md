@@ -1,7 +1,7 @@
 
 <a id="TMP_0866"></a>
 
-# 一些元启发式进化算法比较
+# 一些元启发式进化优化算法比较
 
 [![View evolutionary-algorithms on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://au.mathworks.com/matlabcentral/fileexchange/180962-evolutionary-algorithms)
 [![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=cuixing158/evolutionary-algorithms)
